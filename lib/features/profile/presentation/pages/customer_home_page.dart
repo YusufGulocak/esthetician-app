@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/network/supabase_service.dart';
+import '../../../appointments/presentation/pages/book_appointment_page.dart';
 
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
@@ -200,13 +201,10 @@ class _HomeTabState extends State<_HomeTab> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1208),
-                        foregroundColor: const Color(0xFFC9A84C),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      onPressed: () => Navigator.push(
+  context,
+  MaterialPageRoute(builder: (_) => const BookAppointmentPage()),
+),
                       child: const Text('Randevu Al', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 1)),
                     ),
                   ),
