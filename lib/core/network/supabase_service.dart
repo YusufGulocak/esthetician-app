@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/network/supabase_service.dart';
 
 class SupabaseService {
   static final _client = Supabase.instance.client;
@@ -151,5 +152,40 @@ static Future<List<Map<String, dynamic>>> getAllLoyaltyPoints() async {
   } catch (e) {
     return [];
   }
+}
+// Hizmet ekle
+static Future<void> addService({
+  required String name,
+  required String description,
+  required double price,
+  required int durationMinutes,
+  required String category,
+}) async {
+  await _client.from('services').insert({
+    'name': name,
+    'description': description,
+    'price': price,
+    'duration_minutes': durationMinutes,
+    'category': category,
+    'is_active': true,
+  });
+}
+
+// Hizmet güncelle
+static Future<void> updateService({
+  required String id,
+  required String name,
+  required String description,
+  required double price,
+  required int durationMinutes,
+  required String category,
+}) async {
+  await _client.from('services').update({
+    'name': name,
+    'description': description,
+    'price': price,
+    'duration_minutes': durationMinutes,
+    'category': category,
+  }).eq('id', id);
 }
 }

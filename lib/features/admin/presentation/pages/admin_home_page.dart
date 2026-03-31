@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:dilan_beauty_app/features/appointments/presentation/pages/new_appointment_sheet.dart';
+import 'services_management_page.dart';
+import '../../../appointments/presentation/pages/new_appointment_sheet.dart';
 import '../../../../core/network/supabase_service.dart';
 import '../../../auth/presentation/pages/login_page.dart';
-
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
 
@@ -30,18 +30,27 @@ class _AdminHomePageState extends State<AdminHomePage> {
         children: [
           // Sidebar
           _Sidebar(
-            navItems: _navItems,
-            selectedIndex: _selectedIndex,
-            onItemSelected: (i) => setState(() => _selectedIndex = i),
-            onLogout: () async {
-              await SupabaseService.signOut();
-              if (!mounted) return;
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-              );
-            },
-          ),
+  navItems: _navItems,
+  selectedIndex: _selectedIndex,
+  onItemSelected: (i) {
+    if (i == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ServicesManagementPage()),
+      );
+    } else {
+      setState(() => _selectedIndex = i);
+    }
+  },
+  onLogout: () async {
+    await SupabaseService.signOut();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+  },
+),
           // Ana içerik
           Expanded(
             child: _DashboardContent(),
@@ -499,11 +508,11 @@ class _DashboardContentState extends State<_DashboardContent> {
                               : const Color(0xFFFDF4E3),
                       isLast: i == _appointments.length - 1,
                       onConfirm: status == 'pending'
-    ? () => _updateStatus(a['id'], 'confirmed')
-    : null,
-onCancel: status == 'pending'
-    ? () => _updateStatus(a['id'], 'cancelled')
-    : null,
+                          ? () => _updateStatus(a['id'], 'confirmed')
+                          : null,
+                      onCancel: status == 'pending'
+                          ? () => _updateStatus(a['id'], 'cancelled')
+                          : null,
                     );
                   }),
               ],
