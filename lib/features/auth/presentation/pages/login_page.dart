@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/network/supabase_service.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -191,16 +192,19 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'Kayıt Ol',
-                      style: TextStyle(
-                        color: Color(0xFFC9A84C),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+  onPressed: () => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const RegisterPage()),
+  ),
+  child: const Text(
+    'Kayıt Ol',
+    style: TextStyle(
+      color: Color(0xFFC9A84C),
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    ),
+  ),
+),
                 ],
               ),
             ],

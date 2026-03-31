@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/network/supabase_service.dart';
 
 class NewAppointmentSheet extends StatefulWidget {
   const NewAppointmentSheet({super.key});
@@ -12,25 +13,36 @@ class _NewAppointmentSheetState extends State<NewAppointmentSheet> {
   final _phoneController = TextEditingController();
   final _notesController = TextEditingController();
 
-  String? _selectedService;
+  List<Map<String, dynamic>> _services = [];
+  Map<String, dynamic>? _selectedService;
   DateTime? _selectedDate;
   String? _selectedTime;
   bool _isLoading = false;
-
-  final List<String> _services = [
-    'Cilt Bakımı',
-    'Kaş Tasarımı',
-    'Kalıcı Makyaj',
-    'Epilasyon',
-    'Saç Bakımı',
-    'Makyaj',
-  ];
+  bool _isServicesLoading = true;
 
   final List<String> _timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServices();
+  }
+
+  Future<void> _loadServices() async {
+    try {
+      final services = await SupabaseService.getServices();
+      setState(() {
+        _services = services;
+        _isServicesLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isServicesLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -65,27 +77,40 @@ class _NewAppointmentSheetState extends State<NewAppointmentSheet> {
   }
 
   Future<void> _saveAppointment() async {
-    if (_nameController.text.isEmpty ||
-        _selectedService == null ||
-        _selectedDate == null ||
-        _selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lütfen tüm zorunlu alanları doldurun'),
-          backgroundColor: Color(0xFF8A2A2A),
-        ),
-      );
-      return;
-    }
+  if (_selectedService == null ||
+      _selectedDate == null ||
+      _selectedTime == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Lütfen hizmet, tarih ve saat seçin'),
+        backgroundColor: Color(0xFF8A2A2A),
+      ),
+    );
+    return;
+  }
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    // Supabase kayıt buraya gelecek
-    await Future.delayed(const Duration(seconds: 1));
+  try {
+    final date =
+        '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+
+    print('Service ID: ${_selectedService!['id']}');
+    print('Date: $date');
+    print('Time: $_selectedTime');
+    print('Current user: ${SupabaseService.currentUser?.id}');
+    print('createAppointment çağrılıyor...');
+
+    await SupabaseService.createAppointment(
+  serviceId: _selectedService!['id'],
+  date: date,
+  time: _selectedTime!,
+  notes: _notesController.text,
+  customerName: _nameController.text,
+  customerPhone: _phoneController.text,
+);
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
-
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -93,8 +118,21 @@ class _NewAppointmentSheetState extends State<NewAppointmentSheet> {
         backgroundColor: Color(0xFF2A6A2A),
       ),
     );
+  } catch (e, stack) {
+    print('HATA: $e');
+    print('STACK: $stack');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Hata: $e'),
+        backgroundColor: const Color(0xFF8A2A2A),
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = true);
+print('isLoading true yapıldı');
   }
-
+}
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -170,47 +208,42 @@ class _NewAppointmentSheetState extends State<NewAppointmentSheet> {
                   const SizedBox(height: 16),
 
                   // Hizmet seçimi
-                  _buildLabel('Hizmet *'),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE8E0D0)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedService,
-                        hint: const Text(
-                          'Hizmet seçin',
-                          style: TextStyle(
-                            color: Color(0xFF9A8A6A),
-                            fontSize: 13,
-                          ),
-                        ),
-                        isExpanded: true,
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Color(0xFF9A8A6A),
-                        ),
-                        items: _services.map((s) {
-                          return DropdownMenuItem(
-                            value: s,
-                            child: Text(
-                              s,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF1A1208),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (v) => setState(() => _selectedService = v),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // Hizmet seçimi
+_buildLabel('Hizmet *'),
+const SizedBox(height: 8),
+_isServicesLoading
+    ? const Center(
+        child: CircularProgressIndicator(color: Color(0xFFC9A84C)),
+      )
+    : Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF7F2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E0D0)),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<Map<String, dynamic>>(
+            value: _selectedService,
+            hint: const Text(
+              'Hizmet seçin',
+              style: TextStyle(color: Color(0xFF9A8A6A), fontSize: 13),
+            ),
+            isExpanded: true,
+            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF9A8A6A)),
+            items: _services.map((s) {
+              return DropdownMenuItem<Map<String, dynamic>>(
+                value: s,
+                child: Text(
+                  '${s['name']} - ₺${s['price']}',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF1A1208)),
+                ),
+              );
+            }).toList(),
+            onChanged: (v) => setState(() => _selectedService = v),
+          ),
+        ),
+      ),
 
                   // Tarih seçimi
                   _buildLabel('Tarih *'),
@@ -336,7 +369,11 @@ class _NewAppointmentSheetState extends State<NewAppointmentSheet> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveAppointment,
+                     onPressed: () {
+  print('BUTON TIKLANDI');
+  
+  if (!_isLoading) _saveAppointment();
+},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC9A84C),
                         foregroundColor: const Color(0xFF1A1208),

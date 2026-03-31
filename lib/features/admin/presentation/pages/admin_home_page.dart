@@ -287,7 +287,39 @@ class _NavTile extends StatelessWidget {
   }
 }
 
-class _DashboardContent extends StatelessWidget {
+class _DashboardContent extends StatefulWidget {
+  @override
+  State<_DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<_DashboardContent> {
+  List<Map<String, dynamic>> _appointments = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final appointments = await SupabaseService.getTodayAppointments();
+      setState(() {
+        _appointments = appointments;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateStatus(String id, String status) async {
+  await SupabaseService.updateAppointmentStatus(id, status);
+  _loadData();
+}
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -321,13 +353,15 @@ class _DashboardContent extends StatelessWidget {
               ),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed: () {
-  showModalBottomSheet(
+                onPressed: () async {
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => const NewAppointmentSheet(),
   );
+  // Form kapanınca yenile
+  _loadData();
 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC9A84C),
@@ -352,31 +386,32 @@ class _DashboardContent extends StatelessWidget {
             children: [
               _StatCard(
                 label: 'Bugün Randevu',
-                value: '8',
-                delta: '↑ 2 dünden fazla',
+                value: '${_appointments.length}',
+                delta: 'Toplam randevu',
                 positive: true,
               ),
               const SizedBox(width: 14),
               _StatCard(
-                label: 'Günlük Gelir',
-                value: '₺3.240',
-                delta: '↑ %12 bu hafta',
+                label: 'Onaylı',
+                value: '${_appointments.where((a) => a['status'] == 'confirmed').length}',
+                delta: 'Onaylanmış',
                 positive: true,
               ),
               const SizedBox(width: 14),
               _StatCard(
-                label: 'Aktif Müşteri',
-                value: '142',
-                delta: '↑ 7 bu ay',
-                positive: true,
-              ),
-              const SizedBox(width: 14),
-              _StatCard(
-                label: 'Bekleyen Onay',
-                value: '3',
+                label: 'Bekleyen',
+                value: '${_appointments.where((a) => a['status'] == 'pending').length}',
                 delta: 'Onay bekliyor',
                 positive: false,
                 valueColor: const Color(0xFFC9A84C),
+              ),
+              const SizedBox(width: 14),
+              _StatCard(
+                label: 'İptal',
+                value: '${_appointments.where((a) => a['status'] == 'cancelled').length}',
+                delta: 'İptal edilmiş',
+                positive: false,
+                valueColor: const Color(0xFFA04030),
               ),
             ],
           ),
@@ -403,69 +438,74 @@ class _DashboardContent extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'Tümünü gör →',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFC9A84C),
-                        ),
+                    GestureDetector(
+                      onTap: _loadData,
+                      child: const Icon(
+                        Icons.refresh,
+                        color: Color(0xFFC9A84C),
+                        size: 18,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                _AppointmentRow(
-  time: '12:00',
-  initials: 'SÖ',
-  name: 'Selin Öztürk',
-  service: 'Makyaj · 90 dk',
-  status: 'Bekliyor',
-  statusColor: const Color(0xFF8A5A10),
-  statusBg: const Color(0xFFFDF4E3),
-  onConfirm: () {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Randevu onaylandı'),
-        backgroundColor: Color(0xFF2A6A2A),
-      ),
-    );
-  },
-  onCancel: () {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Randevu iptal edildi'),
-        backgroundColor: Color(0xFF8A2A2A),
-      ),
-    );
-  },
-),
-_AppointmentRow(
-  time: '14:00',
-  initials: 'NB',
-  name: 'Naz Bayrak',
-  service: 'Saç Bakımı · 45 dk',
-  status: 'Bekliyor',
-  statusColor: const Color(0xFF8A5A10),
-  statusBg: const Color(0xFFFDF4E3),
-  onConfirm: () {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Randevu onaylandı'),
-        backgroundColor: Color(0xFF2A6A2A),
-      ),
-    );
-  },
-  onCancel: () {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Randevu iptal edildi'),
-        backgroundColor: Color(0xFF8A2A2A),
-      ),
-    );
-  },
-),
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFC9A84C),
+                    ),
+                  )
+                else if (_appointments.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'Bugün randevu yok',
+                      style: TextStyle(color: Color(0xFF9A8A6A)),
+                    ),
+                  )
+                else
+                  ..._appointments.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final a = entry.value;
+                    final name = (a['customer_name'] != null && a['customer_name'].toString().isNotEmpty)
+    ? a['customer_name']
+    : a['users']?['full_name'] ?? 'Misafir';
+                    final initials = name.split(' ').map((w) => w[0]).take(2).join();
+                    final service = a['services']?['name'] ?? '';
+                    final duration = a['services']?['duration_minutes'] ?? 0;
+                    final time = a['time'].toString().substring(0, 5);
+                    final status = a['status'];
+
+                    return _AppointmentRow(
+                      time: time,
+                      initials: initials,
+                      name: name,
+                      service: '$service · $duration dk',
+                      status: status == 'confirmed'
+                          ? 'Onaylı'
+                          : status == 'cancelled'
+                              ? 'İptal'
+                              : 'Bekliyor',
+                      statusColor: status == 'confirmed'
+                          ? const Color(0xFF2A6A2A)
+                          : status == 'cancelled'
+                              ? const Color(0xFF8A2A2A)
+                              : const Color(0xFF8A5A10),
+                      statusBg: status == 'confirmed'
+                          ? const Color(0xFFEDF7EE)
+                          : status == 'cancelled'
+                              ? const Color(0xFFFDECEA)
+                              : const Color(0xFFFDF4E3),
+                      isLast: i == _appointments.length - 1,
+                      onConfirm: status == 'pending'
+    ? () => _updateStatus(a['id'], 'confirmed')
+    : null,
+onCancel: status == 'pending'
+    ? () => _updateStatus(a['id'], 'cancelled')
+    : null,
+                    );
+                  }),
               ],
             ),
           ),

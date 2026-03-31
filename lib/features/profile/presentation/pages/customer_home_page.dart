@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/network/supabase_service.dart';
 
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
@@ -51,8 +52,26 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 }
 
-class _HomeTab extends StatelessWidget {
+class _HomeTab extends StatefulWidget {
   const _HomeTab();
+
+  @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> {
+  int _loyaltyPoints = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPoints();
+  }
+
+  Future<void> _loadPoints() async {
+    final points = await SupabaseService.getLoyaltyPoints();
+    setState(() => _loyaltyPoints = points);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,11 +116,18 @@ class _HomeTab extends StatelessWidget {
                       children: [
                         const Icon(Icons.star_rounded, color: Color(0xFFC9A84C), size: 28),
                         const SizedBox(width: 12),
-                        const Column(
+                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Sadakat Puanınız', style: TextStyle(fontSize: 11, color: Color(0xFF9A8A6A))),
-                            Text('320 Puan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFFC9A84C))),
+                           Text(
+  '$_loyaltyPoints Puan',
+  style: TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFFC9A84C),
+  ),
+),
                           ],
                         ),
                         const Spacer(),
