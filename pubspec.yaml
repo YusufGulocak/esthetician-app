@@ -17,11 +17,24 @@ dependencies:
   table_calendar: ^3.1.2
   intl: ^0.19.0
   cached_network_image: ^3.3.1
+  image_picker: ^1.1.2
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/dilan_beauty_logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1A1208"
+  adaptive_icon_foreground: "assets/images/dilan_beauty_logo.png"
+  web:
+    generate: false
 
 flutter:
   uses-material-design: true

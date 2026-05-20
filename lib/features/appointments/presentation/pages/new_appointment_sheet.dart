@@ -77,62 +77,61 @@ class _NewAppointmentSheetState extends State<NewAppointmentSheet> {
   }
 
   Future<void> _saveAppointment() async {
-  if (_selectedService == null ||
-      _selectedDate == null ||
-      _selectedTime == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Lütfen hizmet, tarih ve saat seçin'),
-        backgroundColor: Color(0xFF8A2A2A),
-      ),
-    );
-    return;
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen müşteri adını girin'),
+          backgroundColor: Color(0xFF8A2A2A),
+        ),
+      );
+      return;
+    }
+
+    if (_selectedService == null || _selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen hizmet, tarih ve saat seçin'),
+          backgroundColor: Color(0xFF8A2A2A),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final date =
+          '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+
+      await SupabaseService.createAppointment(
+        serviceId: _selectedService!['id'],
+        date: date,
+        time: _selectedTime!,
+        notes: _notesController.text,
+        customerName: _nameController.text,
+        customerPhone: _phoneController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Randevu başarıyla oluşturuldu'),
+          backgroundColor: Color(0xFF2A6A2A),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Hata: $e'),
+          backgroundColor: const Color(0xFF8A2A2A),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-
-  setState(() => _isLoading = true);
-
-  try {
-    final date =
-        '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
-
-    print('Service ID: ${_selectedService!['id']}');
-    print('Date: $date');
-    print('Time: $_selectedTime');
-    print('Current user: ${SupabaseService.currentUser?.id}');
-    print('createAppointment çağrılıyor...');
-
-    await SupabaseService.createAppointment(
-  serviceId: _selectedService!['id'],
-  date: date,
-  time: _selectedTime!,
-  notes: _notesController.text,
-  customerName: _nameController.text,
-  customerPhone: _phoneController.text,
-);
-
-    if (!mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Randevu başarıyla oluşturuldu'),
-        backgroundColor: Color(0xFF2A6A2A),
-      ),
-    );
-  } catch (e, stack) {
-    print('HATA: $e');
-    print('STACK: $stack');
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Hata: $e'),
-        backgroundColor: const Color(0xFF8A2A2A),
-      ),
-    );
-  } finally {
-    if (mounted) setState(() => _isLoading = true);
-print('isLoading true yapıldı');
-  }
-}
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -207,7 +206,6 @@ print('isLoading true yapıldı');
                   ),
                   const SizedBox(height: 16),
 
-                  // Hizmet seçimi
                   // Hizmet seçimi
 _buildLabel('Hizmet *'),
 const SizedBox(height: 8),
@@ -369,11 +367,7 @@ _isServicesLoading
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                     onPressed: () {
-  print('BUTON TIKLANDI');
-  
-  if (!_isLoading) _saveAppointment();
-},
+                      onPressed: _isLoading ? null : _saveAppointment,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC9A84C),
                         foregroundColor: const Color(0xFF1A1208),

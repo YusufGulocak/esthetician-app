@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/network/supabase_service.dart';
 
 class BookAppointmentPage extends StatefulWidget {
@@ -81,6 +82,27 @@ class _BookAppointmentPageState extends State<BookAppointmentPage> {
     try {
       final date =
           '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+
+      // Aynı gün onaylı randevu var mı kontrol et
+      final existing = await Supabase.instance.client
+          .from('appointments')
+          .select('id')
+          .eq('user_id', SupabaseService.currentUser!.id)
+          .eq('date', date)
+          .eq('status', 'confirmed')
+          .limit(1);
+
+      if (existing.isNotEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu tarihte zaten onaylı bir randevunuz var'),
+            backgroundColor: Color(0xFF8A2A2A),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
 
       await SupabaseService.createAppointment(
         serviceId: _selectedService!['id'],
